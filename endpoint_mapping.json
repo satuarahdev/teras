@@ -1,0 +1,22 @@
+{
+    "pdf_compress": "/api/v1/pdf/compress",
+    "pdf_split": "/api/v1/pdf/split",
+    "pdf_merge": "/api/v1/pdf/merge",
+    "pdf_password": "/api/v1/pdf/password",
+    "pdf_unlock": "/api/v1/pdf/unlock",
+    "pdf_to_image": "/api/v1/pdf/to-image",
+    "pdf_image_to_pdf": "/api/v1/pdf/image-to-pdf",
+    "pdf_organize": "/api/v1/pdf/organize",
+    "image_compress": "/api/v1/media/image/compress",
+    "image_resize": "/api/v1/media/image/resize",
+    "image_convert": "/api/v1/media/image/convert",
+    "image_remove_bg": "/api/v1/media/image/remove-bg",
+    "excel_to_csv": "/api/v1/data/excel-to-csv",
+    "csv_to_excel": "/api/v1/data/csv-to-excel",
+    "excel_ghost_row_remover": "/api/v1/data/excel-ghost-row-remover",
+    "generate_qr": "/api/v1/generate/qr",
+    "generate_whatsapp": "/api/v1/generate/whatsapp",
+    "generate_password": "/api/v1/generate/password",
+    "tiktok_download": "/api/v1/media/tiktok-download",
+    "instagram_download": "/api/v1/media/instagram-info"
+}

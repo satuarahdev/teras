@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: teras
+    env_file:
+      - .env
+    ports:
+      - "25336:3001"
+    restart: unless-stopped

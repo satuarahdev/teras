@@ -1,0 +1,13 @@
+[package]
+name = "teras"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+teloxide = { version = "0.13", features = ["macros"] }
+tokio = { version = "1.37", features = ["full"] }
+reqwest = { version = "0.12", features = ["stream", "multipart", "json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dotenvy = "0.15"
+axum = { version = "0.7", features = ["multipart", "macros"] }

@@ -1,0 +1,316 @@
+[
+    {
+        "functionDeclarations": [
+            {
+                "name": "pdf_compress",
+                "description": "Kompres file PDF untuk mengurangi ukurannya",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "quality": {
+                            "type": "string",
+                            "description": "string ('balanced' atau 'aggressive') - JANGAN DITANYAKAN, default 'balanced'"
+                        },
+                        "target_size_mb": {
+                            "type": "number",
+                            "description": "float (wajib jika quality=aggressive) - JANGAN DITANYAKAN"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "pdf_split",
+                "description": "Pisah file PDF menjadi beberapa halaman atau range tertentu",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "output_mode": {
+                            "type": "string",
+                            "description": "string ('merge' atau 'split')"
+                        },
+                        "ranges": {
+                            "type": "string",
+                            "description": "string (wajib jika split_mode=range, misal '1-3,5')"
+                        },
+                        "split_mode": {
+                            "type": "string",
+                            "description": "string ('all' atau 'range')"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "pdf_merge",
+                "description": "Gabungkan beberapa file PDF menjadi satu file",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
+                "name": "pdf_password",
+                "description": "Tambahkan password/proteksi ke file PDF",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "password": {
+                            "type": "string",
+                            "description": "string (password yang akan diset)"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "pdf_unlock",
+                "description": "Hapus password dari file PDF yang terkunci",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "password": {
+                            "type": "string",
+                            "description": "string (password saat ini untuk membuka kunci)"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "pdf_to_image",
+                "description": "Ubah file PDF menjadi gambar (PNG/JPG)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "format": {
+                            "type": "string",
+                            "description": "string ('png' atau 'jpg') - JANGAN DITANYAKAN, default 'jpg'"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "pdf_image_to_pdf",
+                "description": "Ubah file gambar (JPG/PNG/WEBP) menjadi PDF",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "merge": {
+                            "type": "boolean",
+                            "description": "boolean (true jika ingin digabung ke 1 PDF) - JANGAN DITANYAKAN, DEFAULT SELALU TRUE!"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "pdf_organize",
+                "description": "Atur ulang urutan halaman PDF",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "page_order": {
+                            "type": "string",
+                            "description": "string (urutan halaman pisah koma, misal '3,1,2')"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "image_compress",
+                "description": "Kompres gambar (JPG/PNG/WEBP/SVG) untuk mengurangi ukuran",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "quality": {
+                            "type": "string",
+                            "description": "string ('balanced' atau 'aggressive') - JANGAN DITANYAKAN, default 'balanced'"
+                        },
+                        "target_size_mb": {
+                            "type": "number",
+                            "description": "float (wajib jika aggressive) - JANGAN DITANYAKAN"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "image_resize",
+                "description": "Ubah ukuran resolusi gambar",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "format": {
+                            "type": "string",
+                            "description": "string ('jpg', 'png', 'webp', atau kosong untuk default) - JANGAN DITANYAKAN"
+                        },
+                        "height": {
+                            "type": "number",
+                            "description": "integer"
+                        },
+                        "quality": {
+                            "type": "number",
+                            "description": "integer (1-100, default 85)"
+                        },
+                        "resize_mode": {
+                            "type": "string",
+                            "description": "string ('exact', 'crop_center', atau 'keep_ratio') - JANGAN DITANYAKAN, default 'keep_ratio'"
+                        },
+                        "width": {
+                            "type": "number",
+                            "description": "integer"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "image_convert",
+                "description": "Ubah format gambar ke format lain",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "target_format": {
+                            "type": "string",
+                            "description": "string ('jpg', 'png', 'webp')"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "image_remove_bg",
+                "description": "Hapus background gambar",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "bg_color_hex": {
+                            "type": "string",
+                            "description": "string (opsional, misal '#FFFFFF')"
+                        },
+                        "method": {
+                            "type": "string",
+                            "description": "string ('color' atau 'grabcut')"
+                        },
+                        "tolerance": {
+                            "type": "number",
+                            "description": "integer (default 30)"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "excel_to_csv",
+                "description": "Konversi file Excel (XLS/XLSX) ke CSV",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
+                "name": "csv_to_excel",
+                "description": "Konversi file CSV ke Excel (XLSX)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
+                "name": "excel_ghost_row_remover",
+                "description": "Hapus baris kosong tersembunyi (ghost rows) dari file Excel",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
+                "name": "generate_qr",
+                "description": "Buat gambar QR Code dari teks atau URL",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "size": {
+                            "type": "number",
+                            "description": "integer (opsional, ukuran gambar)"
+                        },
+                        "text": {
+                            "type": "string",
+                            "description": "string (konten QR code)"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "generate_whatsapp",
+                "description": "Buat link chat WhatsApp yang bisa diklik",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": "string (pesan default)"
+                        },
+                        "phone": {
+                            "type": "string",
+                            "description": "string (nomor HP)"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "generate_password",
+                "description": "Buat password acak yang kuat",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "length": {
+                            "type": "number",
+                            "description": "integer"
+                        },
+                        "lowercase": {
+                            "type": "boolean",
+                            "description": "boolean"
+                        },
+                        "numbers": {
+                            "type": "boolean",
+                            "description": "boolean"
+                        },
+                        "symbols": {
+                            "type": "boolean",
+                            "description": "boolean"
+                        },
+                        "uppercase": {
+                            "type": "boolean",
+                            "description": "boolean"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "tiktok_download",
+                "description": "Download video TikTok kualitas terbaik tanpa watermark.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "URL video TikTok yang ingin diunduh"
+                        }
+                    },
+                    "required": [
+                        "url"
+                    ]
+                }
+            },
+            {
+                "name": "instagram_download",
+                "description": "Download video reels, foto, atau carousel dari Instagram.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": "URL Instagram yang ingin diunduh"
+                        }
+                    },
+                    "required": [
+                        "url"
+                    ]
+                }
+            }
+        ]
+    }
+]
