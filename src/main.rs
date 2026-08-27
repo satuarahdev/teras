@@ -290,7 +290,18 @@ async fn download_media(
             println!("Got file path from Bot API: {}, size: {}", file.path, file.size);
             let base_api_url = state.bot.api_url();
             let base_str = base_api_url.as_str().trim_end_matches('/');
-            let url = format!("{}/file/bot{}/{}", base_str, state.bot.token(), file.path);
+            let token_str = state.bot.token();
+
+            let clean_path = file.path.trim_start_matches('/');
+            let relative_file_path = if let Some(stripped) = clean_path.strip_prefix("var/lib/telegram-bot-api/") {
+                stripped.strip_prefix(token_str).unwrap_or(stripped).trim_start_matches('/')
+            } else if let Some(stripped) = clean_path.strip_prefix(token_str) {
+                stripped.trim_start_matches('/')
+            } else {
+                clean_path
+            };
+
+            let url = format!("{}/file/bot{}/{}", base_str, token_str, relative_file_path);
             println!("Downloading stream from: {}", url);
             match state.client.get(&url).send().await {
                 Ok(resp) => {
