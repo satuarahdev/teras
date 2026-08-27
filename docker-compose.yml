@@ -9,3 +9,10 @@ services:
     ports:
       - "25336:3001"
     restart: unless-stopped
+    networks:
+      - default
+
+networks:
+  default:
+    name: satuarah-network
+    external: true
