@@ -35,7 +35,12 @@ async fn main() {
         .build()
         .unwrap_or_else(|_| Client::new());
 
-    let mut bot = Bot::with_client(token, client.clone());
+    let teloxide_client = teloxide::net::default_reqwest_settings()
+        .timeout(std::time::Duration::from_secs(1800))
+        .build()
+        .unwrap();
+
+    let mut bot = Bot::with_client(token, teloxide_client);
     if let Ok(api_url_str) = std::env::var("TELEGRAM_API_URL") {
         let trimmed = api_url_str.trim();
         if !trimmed.is_empty() {
