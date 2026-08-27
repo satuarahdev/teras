@@ -292,6 +292,16 @@ async fn download_media(
             // 1. Direct Local File System Access (Fastest & Native for Telegram Bot API Local Mode)
             if std::path::Path::new(&file.path).exists() {
                 println!("Reading file directly from local shared volume: {}", file.path);
+                
+                // Spawn background cleanup after 10 minutes to keep SSD clean
+                let clean_path = file.path.clone();
+                tokio::spawn(async move {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(600)).await;
+                    if let Ok(_) = tokio::fs::remove_file(&clean_path).await {
+                        println!("Auto-cleaned processed file from volume: {}", clean_path);
+                    }
+                });
+
                 match tokio::fs::File::open(&file.path).await {
                     Ok(f) => {
                         let stream = tokio_util::io::ReaderStream::new(f);

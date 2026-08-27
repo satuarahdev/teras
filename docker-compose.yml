@@ -10,7 +10,7 @@ services:
       - "25336:3001"
     restart: unless-stopped
     volumes:
-      - telegram-bot-api-data:/var/lib/telegram-bot-api:ro
+      - telegram-bot-api-data:/var/lib/telegram-bot-api
     networks:
       - default
 
