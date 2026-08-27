@@ -30,7 +30,12 @@ async fn main() {
     let forward_url = std::env::var("WEBHOOK_FORWARD_URL")
         .unwrap_or_else(|_| "http://backend-rust:25333/api/v1/webhook/telegram".to_string());
 
-    let mut bot = Bot::new(token);
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(1800))
+        .build()
+        .unwrap_or_else(|_| Client::new());
+
+    let mut bot = Bot::with_client(token, client.clone());
     if let Ok(api_url_str) = std::env::var("TELEGRAM_API_URL") {
         let trimmed = api_url_str.trim();
         if !trimmed.is_empty() {
@@ -45,11 +50,6 @@ async fn main() {
             }
         }
     }
-
-    let client = Client::builder()
-        .timeout(std::time::Duration::from_secs(1800))
-        .build()
-        .unwrap_or_else(|_| Client::new());
 
     let state = AppState {
         bot,
