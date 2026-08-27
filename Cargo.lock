@@ -1746,7 +1746,7 @@ dependencies = [
 
 [[package]]
 name = "teras"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "axum",
  "dotenvy",
@@ -1756,6 +1756,7 @@ dependencies = [
  "serde_json",
  "teloxide",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]

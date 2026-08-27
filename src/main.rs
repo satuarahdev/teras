@@ -288,6 +288,25 @@ async fn download_media(
     match state.bot.get_file(query.file_id).await {
         Ok(file) => {
             println!("Got file path from Bot API: {}, size: {}", file.path, file.size);
+
+            // 1. Direct Local File System Access (Fastest & Native for Telegram Bot API Local Mode)
+            if std::path::Path::new(&file.path).exists() {
+                println!("Reading file directly from local shared volume: {}", file.path);
+                match tokio::fs::File::open(&file.path).await {
+                    Ok(f) => {
+                        let stream = tokio_util::io::ReaderStream::new(f);
+                        let body = axum::body::Body::from_stream(stream);
+                        let mut headers = axum::http::HeaderMap::new();
+                        headers.insert(axum::http::header::CONTENT_TYPE, "application/octet-stream".parse().unwrap());
+                        return (StatusCode::OK, headers, body).into_response();
+                    }
+                    Err(e) => {
+                        eprintln!("Error opening local file {}: {}", file.path, e);
+                    }
+                }
+            }
+
+            // 2. HTTP Fallback
             let base_api_url = state.bot.api_url();
             let base_str = base_api_url.as_str().trim_end_matches('/');
             let token_str = state.bot.token();

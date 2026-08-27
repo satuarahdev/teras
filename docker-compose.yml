@@ -9,8 +9,15 @@ services:
     ports:
       - "25336:3001"
     restart: unless-stopped
+    volumes:
+      - telegram-bot-api-data:/var/lib/telegram-bot-api:ro
     networks:
       - default
+
+volumes:
+  telegram-bot-api-data:
+    name: telegram-bot-api-data
+    external: true
 
 networks:
   default:
