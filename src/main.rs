@@ -46,7 +46,10 @@ async fn main() {
         }
     }
 
-    let client = Client::new();
+    let client = Client::builder()
+        .timeout(std::time::Duration::from_secs(1800))
+        .build()
+        .unwrap_or_else(|_| Client::new());
 
     let state = AppState {
         bot,
@@ -276,29 +279,38 @@ async fn download_media(
     State(state): State<AppState>,
     axum::extract::Query(query): axum::extract::Query<DownloadMediaQuery>,
 ) -> impl IntoResponse {
+    println!("Received download request for file_id: {}", query.file_id);
     match state.bot.get_file(query.file_id).await {
         Ok(file) => {
+            println!("Got file path from Bot API: {}, size: {}", file.path, file.size);
             let base_api_url = state.bot.api_url();
             let base_str = base_api_url.as_str().trim_end_matches('/');
             let url = format!("{}/file/bot{}/{}", base_str, state.bot.token(), file.path);
+            println!("Downloading stream from: {}", url);
             match state.client.get(&url).send().await {
                 Ok(resp) => {
-                    if resp.status().is_success() {
-                        match resp.bytes().await {
-                            Ok(bytes) => {
-                                let mut headers = axum::http::HeaderMap::new();
-                                headers.insert(axum::http::header::CONTENT_TYPE, "application/octet-stream".parse().unwrap());
-                                (StatusCode::OK, headers, bytes).into_response()
-                            }
-                            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to read bytes: {}", e)).into_response(),
-                        }
+                    let status = resp.status();
+                    if status.is_success() {
+                        use futures_util::StreamExt;
+                        let stream = resp.bytes_stream().map(|res| res.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string())));
+                        let body = axum::body::Body::from_stream(stream);
+                        let mut headers = axum::http::HeaderMap::new();
+                        headers.insert(axum::http::header::CONTENT_TYPE, "application/octet-stream".parse().unwrap());
+                        (StatusCode::OK, headers, body).into_response()
                     } else {
-                        (StatusCode::BAD_GATEWAY, format!("Failed to download: {}", resp.status())).into_response()
+                        eprintln!("Failed to download from Bot API server. Status: {}", status);
+                        (StatusCode::BAD_GATEWAY, format!("Failed to download from Bot API: {}", status)).into_response()
                     }
                 }
-                Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Reqwest error: {}", e)).into_response(),
+                Err(e) => {
+                    eprintln!("Reqwest error downloading from Bot API: {}", e);
+                    (StatusCode::INTERNAL_SERVER_ERROR, format!("Reqwest error: {}", e)).into_response()
+                }
             }
         }
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Teloxide error: {}", e)).into_response(),
+        Err(e) => {
+            eprintln!("Teloxide get_file error: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, format!("Teloxide error: {}", e)).into_response()
+        }
     }
 }

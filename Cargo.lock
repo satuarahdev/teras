@@ -1746,10 +1746,11 @@ dependencies = [
 
 [[package]]
 name = "teras"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "axum",
  "dotenvy",
+ "futures-util",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
