@@ -30,7 +30,22 @@ async fn main() {
     let forward_url = std::env::var("WEBHOOK_FORWARD_URL")
         .unwrap_or_else(|_| "http://backend-rust:25333/api/v1/webhook/telegram".to_string());
 
-    let bot = Bot::new(token);
+    let mut bot = Bot::new(token);
+    if let Ok(api_url_str) = std::env::var("TELEGRAM_API_URL") {
+        let trimmed = api_url_str.trim();
+        if !trimmed.is_empty() {
+            match trimmed.parse::<reqwest::Url>() {
+                Ok(api_url) => {
+                    println!("Using custom Telegram Bot API Server: {}", api_url);
+                    bot = bot.set_api_url(api_url);
+                }
+                Err(e) => {
+                    eprintln!("Invalid TELEGRAM_API_URL '{}': {}. Falling back to default cloud API.", trimmed, e);
+                }
+            }
+        }
+    }
+
     let client = Client::new();
 
     let state = AppState {
@@ -46,10 +61,11 @@ async fn main() {
         .route("/api/webhook", post(handle_webhook))
         .route("/api/message/send", post(send_message))
         .route("/api/message/delete", post(delete_message))
+        .route("/api/message/edit-caption", post(edit_caption))
         .route("/api/action/typing", post(send_typing_action))
         .route("/api/media/send", post(send_media))
         .route("/api/media/download", get(download_media))
-        .layer(axum::extract::DefaultBodyLimit::max(100 * 1024 * 1024))
+        .layer(axum::extract::DefaultBodyLimit::max(2048 * 1024 * 1024))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
@@ -153,9 +169,32 @@ async fn delete_message(
     Json(payload): Json<DeleteMessageReq>,
 ) -> Json<ApiResponse> {
     match state.bot.delete_message(ChatId(payload.chat_id), teloxide::types::MessageId(payload.message_id)).await {
-        Ok(_) => Json(ApiResponse { status: "success".to_string(), error: None, message_id: None }),
+        Ok(_) => Json(ApiResponse { status: "success".to_string(), error: None, message_id: Some(payload.message_id) }),
         Err(e) => {
             eprintln!("Failed to delete message: {}", e);
+            Json(ApiResponse { status: "error".to_string(), error: Some(e.to_string()), message_id: None })
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct EditCaptionReq {
+    chat_id: i64,
+    message_id: i32,
+    caption: String,
+}
+
+async fn edit_caption(
+    State(state): State<AppState>,
+    Json(payload): Json<EditCaptionReq>,
+) -> Json<ApiResponse> {
+    match state.bot.edit_message_caption(ChatId(payload.chat_id), teloxide::types::MessageId(payload.message_id))
+        .caption(payload.caption)
+        .await
+    {
+        Ok(msg) => Json(ApiResponse { status: "success".to_string(), error: None, message_id: Some(msg.id.0) }),
+        Err(e) => {
+            eprintln!("Failed to edit caption: {}", e);
             Json(ApiResponse { status: "error".to_string(), error: Some(e.to_string()), message_id: None })
         }
     }
@@ -204,28 +243,29 @@ async fn send_media(
         "photo" | "image" => {
             let mut req = state.bot.send_photo(chat, input_file);
             if let Some(cap) = caption { req = req.caption(cap); }
-            req.await.map(|_| ())
+            req.await.map(|msg| msg.id.0)
         }
         "video" => {
             let mut req = state.bot.send_video(chat, input_file).supports_streaming(true);
             if let Some(cap) = caption { req = req.caption(cap); }
-            req.await.map(|_| ())
+            req.await.map(|msg| msg.id.0)
         }
         _ => {
             let mut req = state.bot.send_document(chat, input_file);
             if let Some(cap) = caption { req = req.caption(cap); }
-            req.await.map(|_| ())
+            req.await.map(|msg| msg.id.0)
         }
     };
 
     match result {
-        Ok(_) => Json(ApiResponse { status: "success".to_string(), error: None, message_id: None }),
+        Ok(msg_id) => Json(ApiResponse { status: "success".to_string(), error: None, message_id: Some(msg_id) }),
         Err(e) => {
             eprintln!("Failed to send media: {}", e);
             Json(ApiResponse { status: "error".to_string(), error: Some(e.to_string()), message_id: None })
         }
     }
 }
+
 
 #[derive(Deserialize)]
 struct DownloadMediaQuery {
@@ -238,7 +278,9 @@ async fn download_media(
 ) -> impl IntoResponse {
     match state.bot.get_file(query.file_id).await {
         Ok(file) => {
-            let url = format!("https://api.telegram.org/file/bot{}/{} ", state.bot.token(), file.path);
+            let base_api_url = state.bot.api_url();
+            let base_str = base_api_url.as_str().trim_end_matches('/');
+            let url = format!("{}/file/bot{}/{}", base_str, state.bot.token(), file.path);
             match state.client.get(&url).send().await {
                 Ok(resp) => {
                     if resp.status().is_success() {
@@ -260,4 +302,3 @@ async fn download_media(
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("Teloxide error: {}", e)).into_response(),
     }
 }
-
