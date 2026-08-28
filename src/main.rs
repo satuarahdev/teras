@@ -72,6 +72,7 @@ async fn main() {
         .route("/api/message/edit-caption", post(edit_caption))
         .route("/api/action/typing", post(send_typing_action))
         .route("/api/media/send", post(send_media))
+        .route("/api/media/send-file", post(send_media_json))
         .route("/api/media/download", get(download_media))
         .layer(axum::extract::DefaultBodyLimit::max(2048 * 1024 * 1024))
         .with_state(state);
@@ -269,6 +270,76 @@ async fn send_media(
         Ok(msg_id) => Json(ApiResponse { status: "success".to_string(), error: None, message_id: Some(msg_id) }),
         Err(e) => {
             eprintln!("Failed to send media: {}", e);
+            Json(ApiResponse { status: "error".to_string(), error: Some(e.to_string()), message_id: None })
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct SendMediaJsonPayload {
+    chat_id: i64,
+    media_type: Option<String>,
+    caption: Option<String>,
+    file_path: Option<String>,
+    filename: Option<String>,
+}
+
+async fn send_media_json(
+    State(state): State<AppState>,
+    Json(payload): Json<SendMediaJsonPayload>,
+) -> Json<ApiResponse> {
+    let chat = ChatId(payload.chat_id);
+    let media_type = payload.media_type.unwrap_or_else(|| "document".to_string());
+    
+    let input_file = if let Some(path_str) = payload.file_path {
+        let p = std::path::PathBuf::from(&path_str);
+        if !p.exists() {
+            return Json(ApiResponse {
+                status: "error".to_string(),
+                error: Some(format!("File path not found: {}", path_str)),
+                message_id: None,
+            });
+        }
+        let mut f = InputFile::file(p);
+        if let Some(fn_name) = payload.filename {
+            f = f.file_name(fn_name);
+        }
+        f
+    } else {
+        return Json(ApiResponse {
+            status: "error".to_string(),
+            error: Some("Missing file_path in JSON request".to_string()),
+            message_id: None,
+        });
+    };
+
+    println!("Sending {} via Teloxide InputFile::file to chat_id: {}", media_type, payload.chat_id);
+
+    let result = match media_type.as_str() {
+        "photo" | "image" => {
+            let mut req = state.bot.send_photo(chat, input_file);
+            if let Some(cap) = payload.caption { req = req.caption(cap); }
+            req.await.map(|msg| msg.id.0)
+        }
+        "video" => {
+            let mut req = state.bot.send_video(chat, input_file).supports_streaming(true);
+            if let Some(cap) = payload.caption { req = req.caption(cap); }
+            req.await.map(|msg| msg.id.0)
+        }
+        _ => {
+            let mut req = state.bot.send_document(chat, input_file);
+            if let Some(cap) = payload.caption { req = req.caption(cap); }
+            req.await.map(|msg| msg.id.0)
+        }
+    };
+
+    match result {
+        Ok(msg_id) => {
+            println!("Successfully sent media to chat {}, message_id: {}", payload.chat_id, msg_id);
+            Json(ApiResponse { status: "success".to_string(), error: None, message_id: Some(msg_id) })
+        }
+        Err(e) => {
+            eprintln!("Failed to send media via Bot API: {}", e);
             Json(ApiResponse { status: "error".to_string(), error: Some(e.to_string()), message_id: None })
         }
     }
