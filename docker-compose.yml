@@ -4,6 +4,8 @@ services:
   bot:
     build: .
     container_name: teras
+    environment:
+      - TZ=Asia/Jakarta
     env_file:
       - .env
     ports:
