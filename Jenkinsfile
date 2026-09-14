@@ -26,14 +26,51 @@ pipeline {
         stage('Prepare Environment') {
             steps {
                 script {
-                    withCredentials([file(credentialsId: 'env-api-teras.satuarah.id', variable: 'JENKINS_ENV_FILE')]) {
-                        sh '''
-                            set -eu
-                            cp "$JENKINS_ENV_FILE" .env
-                            cp "$JENKINS_ENV_FILE" .env.production
-                            chmod 600 .env .env.production
-                        '''
-                    }
+                    echo "-------------------------------------------------------"
+                    echo "STAGE: Setup Environment Variables from Infisical Plugin"
+                    echo "-------------------------------------------------------"
+                }
+                withInfisical(
+                    configuration: [
+                        infisicalCredentialId: 'infisical-satuarah',
+                        infisicalEnvironmentSlug: 'prod',
+                        infisicalProjectSlug: 'satuarah-vs-o4',
+                        infisicalUrl: 'https://app.infisical.com'
+                    ],
+                    infisicalSecrets: [
+                        infisicalSecret(
+                            includeImports: true,
+                            path: '/teras',
+                            secretValues: [
+                                [infisicalKey: 'PORT', isRequired: false],
+                                [infisicalKey: 'TELEGRAM_BOT_TOKEN', isRequired: true],
+                                [infisicalKey: 'TELEGRAM_API_URL', isRequired: false],
+                                [infisicalKey: 'DOMAIN', isRequired: false],
+                                [infisicalKey: 'WEBHOOK_FORWARD_URL', isRequired: false],
+                                [infisicalKey: 'GEMINI_API_KEY', isRequired: false],
+                                [infisicalKey: 'PYTHON_BACKEND_URL', isRequired: false],
+                                [infisicalKey: 'TIKTOK_API_KEY', isRequired: false]
+                            ]
+                        )
+                    ]
+                ) {
+                    sh '''
+                        set -eu
+
+                        cat <<EOF > .env
+PORT=${PORT:-3001}
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+TELEGRAM_API_URL=${TELEGRAM_API_URL:-http://telegram-bot-api:8081}
+DOMAIN=${DOMAIN:-}
+WEBHOOK_FORWARD_URL=${WEBHOOK_FORWARD_URL:-}
+GEMINI_API_KEY=${GEMINI_API_KEY:-}
+PYTHON_BACKEND_URL=${PYTHON_BACKEND_URL:-http://bantu-backend-python:25334}
+TIKTOK_API_KEY=${TIKTOK_API_KEY:-}
+EOF
+                        cp .env .env.production
+                        chmod 600 .env .env.production
+                        echo "Environment file (.env & .env.production) generated successfully."
+                    '''
                 }
             }
         }
