@@ -17,18 +17,25 @@ struct AppState {
     forward_url: String,
 }
 
+pub fn clean_env_var(key: &str) -> Option<String> {
+    std::env::var(key)
+        .ok()
+        .map(|s| s.trim().trim_matches('"').trim_matches('\'').trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
     
-    let token = std::env::var("TELEGRAM_BOT_TOKEN").unwrap_or_default();
+    let token = clean_env_var("TELEGRAM_BOT_TOKEN").unwrap_or_default();
     if token.is_empty() || token == "your_telegram_bot_token_here" {
         println!("TELEGRAM_BOT_TOKEN not configured. Exiting.");
         return;
     }
 
-    let forward_url = std::env::var("WEBHOOK_FORWARD_URL")
-        .unwrap_or_else(|_| "http://backend-rust:25333/api/v1/webhook/telegram".to_string());
+    let forward_url = clean_env_var("WEBHOOK_FORWARD_URL")
+        .unwrap_or_else(|| "http://bantu-backend-rust:25333/api/v1/webhook/telegram".to_string());
 
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(1800))
@@ -41,17 +48,14 @@ async fn main() {
         .unwrap();
 
     let mut bot = Bot::with_client(token, teloxide_client);
-    if let Ok(api_url_str) = std::env::var("TELEGRAM_API_URL") {
-        let trimmed = api_url_str.trim();
-        if !trimmed.is_empty() {
-            match trimmed.parse::<reqwest::Url>() {
-                Ok(api_url) => {
-                    println!("Using custom Telegram Bot API Server: {}", api_url);
-                    bot = bot.set_api_url(api_url);
-                }
-                Err(e) => {
-                    eprintln!("Invalid TELEGRAM_API_URL '{}': {}. Falling back to default cloud API.", trimmed, e);
-                }
+    if let Some(trimmed) = clean_env_var("TELEGRAM_API_URL") {
+        match trimmed.parse::<reqwest::Url>() {
+            Ok(api_url) => {
+                println!("Using custom Telegram Bot API Server: {}", api_url);
+                bot = bot.set_api_url(api_url);
+            }
+            Err(e) => {
+                eprintln!("Invalid TELEGRAM_API_URL '{}': {}. Falling back to default cloud API.", trimmed, e);
             }
         }
     }
@@ -83,7 +87,7 @@ async fn main() {
 }
 
 async fn setup_webhook(State(state): State<AppState>) -> impl IntoResponse {
-    let domain = std::env::var("DOMAIN").unwrap_or_else(|_| "localhost".to_string());
+    let domain = clean_env_var("DOMAIN").unwrap_or_else(|| "api-teras.satuarah.id".to_string());
     let url = format!("https://{}/api/webhook", domain);
     
     match state.bot.set_webhook(url.parse().unwrap()).await {
