@@ -6,6 +6,7 @@ services:
     container_name: teras
     environment:
       - TZ=Asia/Jakarta
+      - WEBHOOK_FORWARD_URL=${WEBHOOK_FORWARD_URL:-http://bantu-backend-rust:25333/api/v1/webhook/telegram}
     env_file:
       - .env
     ports:
