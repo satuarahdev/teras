@@ -131,6 +131,8 @@ async fn handle_webhook(
 struct SendMessageReq {
     chat_id: i64,
     text: String,
+    #[serde(default)]
+    parse_mode: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -144,7 +146,28 @@ async fn send_message(
     State(state): State<AppState>,
     Json(payload): Json<SendMessageReq>,
 ) -> Json<ApiResponse> {
-    match state.bot.send_message(ChatId(payload.chat_id), &payload.text).await {
+    let mode = match payload.parse_mode.as_deref() {
+        Some("html") | Some("HTML") | Some("Html") => Some(teloxide::types::ParseMode::Html),
+        Some("markdown") | Some("Markdown") => Some(teloxide::types::ParseMode::MarkdownV2),
+        _ => None,
+    };
+
+    let result = if let Some(parse_mode) = mode {
+        let send_res = state.bot.send_message(ChatId(payload.chat_id), &payload.text)
+            .parse_mode(parse_mode)
+            .await;
+        match send_res {
+            Ok(msg) => Ok(msg),
+            Err(e) => {
+                eprintln!("Failed to send formatted message ({:?}), falling back to plain text: {}", payload.parse_mode, e);
+                state.bot.send_message(ChatId(payload.chat_id), &payload.text).await
+            }
+        }
+    } else {
+        state.bot.send_message(ChatId(payload.chat_id), &payload.text).await
+    };
+
+    match result {
         Ok(msg) => Json(ApiResponse { status: "success".to_string(), error: None, message_id: Some(msg.id.0) }),
         Err(e) => {
             eprintln!("Failed to send message: {}", e);
