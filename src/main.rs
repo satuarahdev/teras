@@ -309,6 +309,7 @@ struct SendMediaJsonPayload {
     caption: Option<String>,
     file_path: Option<String>,
     filename: Option<String>,
+    thumbnail_path: Option<String>,
 }
 
 async fn send_media_json(
@@ -351,6 +352,12 @@ async fn send_media_json(
         "video" => {
             let mut req = state.bot.send_video(chat, input_file).supports_streaming(true);
             if let Some(cap) = payload.caption { req = req.caption(cap); }
+            if let Some(tp) = payload.thumbnail_path {
+                let p = std::path::PathBuf::from(&tp);
+                if p.exists() {
+                    req = req.thumbnail(InputFile::file(p));
+                }
+            }
             req.await.map(|msg| msg.id.0)
         }
         _ => {
