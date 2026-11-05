@@ -113,7 +113,7 @@ steps:
           fi
 
           # 3. Pastikan Docker Network & Volume Siap
-          DOCKER_NETWORK="satuarah-network"
+          DOCKER_NETWORK="web-gateway"
           docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1 || docker network create "$DOCKER_NETWORK"
           echo "🌐 Menggunakan Docker Network: $DOCKER_NETWORK"
 
@@ -212,9 +212,6 @@ steps:
             -v telegram-bot-api-data:/var/lib/telegram-bot-api \
             -p "127.0.0.1:$PORT_PROD:$PORT_INTERNAL" \
             "$APP_NAME:latest"
-
-          # Sambungkan otomatis ke web-gateway (Cloudflare Tunnel)
-          docker network inspect web-gateway >/dev/null 2>&1 && docker network connect web-gateway "$APP_NAME" || true
 
           # -----------------------------------------------------------------
           # 8. ZERO DOWNTIME STEP 4: Verifikasi Produksi & Rollback Otomatis
