@@ -15,6 +15,7 @@ struct AppState {
     bot: Bot,
     client: Client,
     forward_url: String,
+    seen_updates: std::sync::Arc<tokio::sync::Mutex<std::collections::VecDeque<(i64, std::time::Instant)>>>,
 }
 
 pub fn clean_env_var(key: &str) -> Option<String> {
@@ -35,7 +36,7 @@ async fn main() {
     }
 
     let forward_url = clean_env_var("WEBHOOK_FORWARD_URL")
-        .unwrap_or_else(|| "http://bantu-backend-rust:25333/api/v1/webhook/telegram".to_string());
+        .unwrap_or_else(|| "http://bantu-backend-rust:8080/api/v1/webhook/telegram".to_string());
 
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(1800))
@@ -64,6 +65,7 @@ async fn main() {
         bot,
         client,
         forward_url,
+        seen_updates: std::sync::Arc::new(tokio::sync::Mutex::new(std::collections::VecDeque::new())),
     };
 
     let app = Router::new()
@@ -101,6 +103,26 @@ async fn handle_webhook(
     State(state): State<AppState>,
     body: axum::body::Bytes,
 ) -> impl IntoResponse {
+    // Deduplicate by update_id directly at gateway
+    if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&body) {
+        if let Some(update_id) = json.get("update_id").and_then(|v| v.as_i64()) {
+            let mut seen = state.seen_updates.lock().await;
+            let now = std::time::Instant::now();
+            while let Some((_, ts)) = seen.front() {
+                if now.duration_since(*ts).as_secs() > 120 {
+                    seen.pop_front();
+                } else {
+                    break;
+                }
+            }
+            if seen.iter().any(|(id, _)| *id == update_id) {
+                println!("Ignoring duplicate update_id {} from Telegram webhook", update_id);
+                return StatusCode::OK;
+            }
+            seen.push_back((update_id, now));
+        }
+    }
+
     println!("Received webhook from Telegram, forwarding to {}", state.forward_url);
     // Fire and forget so we can respond 200 OK immediately to Telegram
     let client = state.client.clone();

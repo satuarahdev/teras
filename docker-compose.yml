@@ -6,11 +6,11 @@ services:
     container_name: teras
     environment:
       - TZ=Asia/Jakarta
-      - WEBHOOK_FORWARD_URL=${WEBHOOK_FORWARD_URL:-http://bantu-backend-rust:25333/api/v1/webhook/telegram}
+      - WEBHOOK_FORWARD_URL=${WEBHOOK_FORWARD_URL:-http://bantu-backend-rust:8080/api/v1/webhook/telegram}
     env_file:
       - .env
     ports:
-      - "25336:3001"
+      - "127.0.0.1:${HOST_PORT:-25336}:3001"
     restart: unless-stopped
     volumes:
       - telegram-bot-api-data:/var/lib/telegram-bot-api
