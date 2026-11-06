@@ -81,16 +81,48 @@ async fn main() {
         .route("/api/media/send-file", post(send_media_json))
         .route("/api/media/download", get(download_media))
         .layer(axum::extract::DefaultBodyLimit::max(2048 * 1024 * 1024))
-        .with_state(state);
+        .with_state(state.clone());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
     println!("Teras wrapper listening on 0.0.0.0:3001");
+    let auto_bot = state.bot.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        let domain = clean_env_var("DOMAIN").unwrap_or_else(|| "api-teras.satuarah.id".to_string());
+        let url = if let Some(custom) = clean_env_var("WEBHOOK_URL") {
+            custom
+        } else if let Some(api_url) = clean_env_var("TELEGRAM_API_URL") {
+            if api_url.contains("telegram-bot-api") || api_url.contains("8081") {
+                "http://teras:3001/api/webhook".to_string()
+            } else {
+                format!("https://{}/api/webhook", domain)
+            }
+        } else {
+            format!("https://{}/api/webhook", domain)
+        };
+        println!("Auto-registering Telegram webhook to: {}", url);
+        match auto_bot.set_webhook(url.parse().unwrap()).await {
+            Ok(_) => println!("Telegram webhook successfully active on: {}", url),
+            Err(e) => eprintln!("Failed to auto-set webhook on startup: {}", e),
+        }
+    });
+
     axum::serve(listener, app).await.unwrap();
 }
 
 async fn setup_webhook(State(state): State<AppState>) -> impl IntoResponse {
     let domain = clean_env_var("DOMAIN").unwrap_or_else(|| "api-teras.satuarah.id".to_string());
-    let url = format!("https://{}/api/webhook", domain);
+    let url = if let Some(custom) = clean_env_var("WEBHOOK_URL") {
+        custom
+    } else if let Some(api_url) = clean_env_var("TELEGRAM_API_URL") {
+        if api_url.contains("telegram-bot-api") || api_url.contains("8081") {
+            "http://teras:3001/api/webhook".to_string()
+        } else {
+            format!("https://{}/api/webhook", domain)
+        }
+    } else {
+        format!("https://{}/api/webhook", domain)
+    };
     
     match state.bot.set_webhook(url.parse().unwrap()).await {
         Ok(_) => (StatusCode::OK, format!("Webhook successfully set to {}", url)),
